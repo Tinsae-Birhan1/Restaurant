@@ -1,13 +1,14 @@
 const Restaurant = require('../models/restaurantModel');
 const cache = require('memory-cache');
-// Controller actions
+const { supabase } = require('../config/database');
+
 const restaurantController = {
   getAllRestaurants: async (req, res) => {
     try {
       let data = cache.get("data");
       if (!data) {
         data = await Restaurant.findAll();
-        cache.put("data", data); // Set data into cache
+        cache.put("data", data); 
       }
       res.status(200).json({
         message: "Data retrieved successfully",
@@ -68,40 +69,45 @@ const restaurantController = {
     try {
         const { location, cuisine, dietaryPreferences, page = 1, limit = 10 } = req.query;
         let query = 'SELECT * FROM restaurants';
-
-        // Construct the WHERE clause based on search parameters
         const whereClauses = [];
         const queryParams = [];
 
         if (location) {
-            // Use PostGIS for location search
-            // Assuming you have a 'geolocation' column of type geometry(Point, 4326) in your 'restaurants' table
-            whereClauses.push(`ST_DWithin(geolocation, ST_SetSRID(ST_MakePoint($1, $2), 4326), 10000)`); // Assuming 10km radius
+            whereClauses.push(`ST_DWithin(geolocation, ST_SetSRID(ST_MakePoint($1, $2), 4326), 10000)`);
             const [longitude, latitude] = location.split(',').map(parseFloat);
             queryParams.push(longitude, latitude);
         }
         if (cuisine) {
-            whereClauses.push(`cuisine = $${queryParams.length + 1}`);
-            queryParams.push(cuisine);
-        }
-        // Add more conditions for other optional search criteria like dietary preferences, rating, price range, etc.
-
+          whereClauses.push(`cuisine = $${queryParams.length + 1}`);
+          queryParams.push(cuisine);
+      }
         if (whereClauses.length > 0) {
             query += ' WHERE ' + whereClauses.join(' AND ');
         }
 
-        // Add pagination
         const offset = (page - 1) * limit;
         query += ` LIMIT ${limit} OFFSET ${offset}`;
+        
+       
+        const {  restaurants, error } = supabase.from('query', [queryParams, query]);
 
-        // Execute the query
-        const { rows: restaurants } = await db.query(query, queryParams);
-        res.json(restaurants);
+        if (error) {
+            throw new Error(error.message);
+        }
+        res.status(200).json({
+            message: "Restaurants retrieved successfully",
+            restaurants
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 }
 
+
+
+
+
+  
 
 };
 
