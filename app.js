@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const searchroutes = require('./routes/searchroutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const menuItemRoutes = require('./routes/menuItemRoutes');
 const dietaryPreferenceRoutes = require('./routes/dietaryPreferenceRoutes');
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/menuItems', menuItemRoutes);
 app.use('/api/dietaryPreferences', dietaryPreferenceRoutes);
+app.use('/api', searchroutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
